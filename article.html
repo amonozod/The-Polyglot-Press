@@ -34,20 +34,20 @@
 </header>
 
 <section class="wrap article-hero">
-  <div class="kicker">Science &amp; Society</div>
-  <h1>Why the students building CRISPR kits in a converted supply closet might matter more than the lab downtown</h1>
-  <p class="dek">A biology elective quietly became the most oversubscribed class on campus. We spent a month with the students trying to explain why gene editing stopped feeling like science fiction.</p>
+  <div class="kicker" id="artKicker">Science &amp; Society</div>
+  <h1 id="artTitle">Why the students building CRISPR kits in a converted supply closet might matter more than the lab downtown</h1>
+  <p class="dek" id="artDek">A biology elective quietly became the most oversubscribed class on campus. We spent a month with the students trying to explain why gene editing stopped feeling like science fiction.</p>
   <div class="article-hero-meta">
-    <span>By <b>Amira Solís</b>, Science Editor</span>
+    <span>By <b id="artAuthor">Amira Solís</b>, Science Editor</span>
     <span>·</span>
-    <span>September 8, 2026</span>
+    <span id="artDate">September 8, 2026</span>
     <span>·</span>
-    <span>11 min read</span>
+    <span id="artReadTime">11 min read</span>
   </div>
-  <div class="media" style="aspect-ratio:16/8; margin:30px 0;"></div>
+  <div class="media" id="artHeroImg" style="aspect-ratio:16/8; margin:30px 0;"></div>
 </section>
 
-<article class="wrap article-body">
+<article class="wrap article-body" id="artBody">
   <p>The room used to store cleaning supplies. You can still see the outline where a shelf bolted to the wall, and the paint is two shades lighter in a rectangle nobody has bothered to repaint. Now it holds four secondhand pipettes, a mini-centrifuge bought secondhand from a lab upgrading its equipment, and, on a Tuesday afternoon in March, six students arguing quietly about whether they had pipetted correctly.</p>
 
   <p>This is Introduction to Genetic Engineering, an elective that did not exist two years ago and now has a waiting list longer than the class itself. Ms. Delacroix, who teaches it alongside three sections of standard biology, says she expected a dozen curious students. She got forty-one applications for sixteen seats.</p>
@@ -133,8 +133,60 @@
 <script src="assets/content.js"></script>
 <script src="assets/script.js"></script>
 <script>
-loadComments("crispr-supply-closet", "commentList");
-loadRatingSummary("crispr-supply-closet", "ratingSummary");
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("slug") || "crispr-supply-closet";
+
+  if (params.get("slug")) {
+    try {
+      const a = await loadArticleBySlug(slug);
+      document.title = a.title + " — The Polyglot Press";
+      document.getElementById("artKicker").textContent = a.category || "";
+      document.getElementById("artTitle").textContent = a.title;
+      document.getElementById("artDek").textContent = a.dek || "";
+      document.getElementById("artAuthor").textContent = a.author || "Staff Writer";
+      document.getElementById("artDate").textContent = timeAgo(a.published_at);
+      document.getElementById("artReadTime").textContent = readTime(a.content);
+      if (a.image_url) {
+        const imgEl = document.createElement("img");
+        imgEl.src = a.image_url; imgEl.alt = "";
+        imgEl.style.cssText = "width:100%; aspect-ratio:16/8; object-fit:cover; margin:30px 0;";
+        document.getElementById("artHeroImg").replaceWith(imgEl);
+      }
+      const bodyEl = document.getElementById("artBody");
+      bodyEl.innerHTML = (a.content || "").split(/\n\s*\n/).map(p => `<p>${p.trim()}</p>`).join("");
+    } catch (e) { /* fall back to the static demo content already in the HTML */ }
+  }
+
+  // Wire rating + comments to the resolved slug (real or demo)
+  document.querySelectorAll(".stars[data-interactive]").forEach(starsEl => {
+    starsEl.querySelectorAll(".star").forEach((star, idx) => {
+      star.style.cursor = "pointer";
+      star.onclick = async () => {
+        starsEl.querySelectorAll(".star").forEach((s, i) => {
+          s.textContent = i <= idx ? "★" : "☆";
+          s.classList.toggle("empty", i > idx);
+        });
+        document.getElementById("ratingFeedback").textContent = "Thanks for rating this " + (idx + 1) + "/5!";
+        try { await postRating(slug, idx + 1); loadRatingSummary(slug, "ratingSummary"); } catch (e) {}
+      };
+    });
+  });
+
+  const form = document.getElementById("commentForm");
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("commentName").value.trim() || "Anonymous";
+    const text = document.getElementById("commentText").value.trim();
+    if (!text) return;
+    try { await postComment(slug, name, text); } catch (err) {}
+    loadComments(slug, "commentList");
+    form.reset();
+  };
+
+  loadComments(slug, "commentList");
+  loadRatingSummary(slug, "ratingSummary");
+})();
 </script>
 </body>
 </html>

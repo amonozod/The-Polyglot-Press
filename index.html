@@ -82,7 +82,7 @@
     <h2>Latest</h2>
     <a href="archive.html">View all issues →</a>
   </div>
-  <div class="article-grid">
+  <div class="article-grid" id="latestArticles">
     <a class="article-card" href="article.html">
       <div class="media" style="aspect-ratio:4/3; margin-bottom:16px;"></div>
       <div class="kicker">Research</div>
@@ -191,6 +191,9 @@
 <script src="assets/auth.js"></script>
 <script src="assets/content.js"></script>
 <script src="assets/script.js"></script>
-<script>loadVideos("homeVideoRow", 4);</script>
+<script>
+loadVideos("homeVideoRow", 4);
+loadArticles("latestArticles", 6);
+</script>
 </body>
 </html>

@@ -46,13 +46,13 @@ function setupAuthUI() {
       };
     } else {
       authBtn.textContent = "Sign in";
-      authBtn.onclick = () => authModal.classList.add("show");
+      authBtn.onclick = () => { if (authModal) authModal.style.display = "flex"; };
     }
   }
   refreshAuthUI();
 
-  if (authModalClose) authModalClose.addEventListener("click", () => authModal.classList.remove("show"));
-  if (authModal) authModal.addEventListener("click", (e) => { if (e.target.id === "authModal") authModal.classList.remove("show"); });
+  if (authModalClose) authModalClose.addEventListener("click", () => { authModal.style.display = "none"; });
+  if (authModal) authModal.addEventListener("click", (e) => { if (e.target.id === "authModal") authModal.style.display = "none"; });
   if (authSubmit) {
     authSubmit.addEventListener("click", async () => {
       const email = authEmailInput.value.trim();

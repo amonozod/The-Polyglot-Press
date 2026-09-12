@@ -66,7 +66,44 @@ async function loadIssues(containerId) {
   } catch (e) { /* keep placeholder */ }
 }
 
-// ---------- Comments & ratings (used on article.html, keyed by a slug) ----------
+function timeAgo(dateStr) {
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function readTime(content) {
+  const words = (content || "").split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200)) + " min read";
+}
+
+function articleCardHTML(a) {
+  const img = a.image_url ? `<img src="${a.image_url}" alt="">` : `<div class="media" style="aspect-ratio:4/3; margin-bottom:16px;"></div>`;
+  return `
+    <a class="article-card" href="article.html?slug=${encodeURIComponent(a.slug)}">
+      ${img}
+      <div class="kicker">${a.category || ""}</div>
+      <h3>${a.title}</h3>
+      <p>${a.dek || ""}</p>
+      <div class="card-meta"><span>${a.category || ""}</span><span class="dot"></span><span>${readTime(a.content)}</span></div>
+    </a>`;
+}
+
+async function loadArticles(containerId, limit) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  try {
+    let query = supabaseClient.from("articles").select("*").order("published_at", { ascending: false });
+    if (limit) query = query.limit(limit);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (data && data.length) el.innerHTML = data.map(articleCardHTML).join("");
+  } catch (e) { /* keep static placeholder */ }
+}
+
+async function loadArticleBySlug(slug) {
+  const { data, error } = await supabaseClient.from("articles").select("*").eq("slug", slug).single();
+  if (error) throw error;
+  return data;
+}
 async function loadComments(slug, listId) {
   const el = document.getElementById(listId);
   if (!el) return;

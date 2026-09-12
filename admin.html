@@ -205,6 +205,13 @@ async function loadArticlesAdmin() {
       <button class="btn btn-outline" onclick="deleteRow('articles','${a.id}',loadArticlesAdmin)">Delete</button>
     </div>`).join("") || '<p style="color:var(--muted);">No articles yet.</p>';
 }
+document.getElementById("aTitle").addEventListener("blur", () => {
+  const slugField = document.getElementById("aSlug");
+  if (!slugField.value.trim()) {
+    slugField.value = document.getElementById("aTitle").value.trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+});
 document.getElementById("aAddBtn").addEventListener("click", async () => {
   const row = {
     slug: document.getElementById("aSlug").value.trim(),
