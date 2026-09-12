@@ -51,8 +51,8 @@ function setupAuthUI() {
   }
   refreshAuthUI();
 
-  if (authModalClose) authModalClose.addEventListener("click", () => authModal.classList.remove("show"));
-  if (authModal) authModal.addEventListener("click", (e) => { if (e.target.id === "authModal") authModal.tyle.display = \"none\; });
+  if (authModalClose) authModalClose.addEventListener("click", () => { authModal.style.display = "none"; });
+  if (authModal) authModal.addEventListener("click", (e) => { if (e.target.id === "authModal") authModal.style.display = "none"; });
   if (authSubmit) {
     authSubmit.addEventListener("click", async () => {
       const email = authEmailInput.value.trim();
