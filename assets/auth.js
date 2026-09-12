@@ -46,7 +46,7 @@ function setupAuthUI() {
       };
     } else {
       authBtn.textContent = "Sign in";
-      authBtn.onclick = () => authModal.classList.add("show");
+      authBtn.onclick = () => { if (authModal) authModal.style.display = "flex"; };
     }
   }
   refreshAuthUI();
