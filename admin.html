@@ -131,7 +131,7 @@
         <div><label>Title</label><input id="iTitle" placeholder="September 2026 — The Patience Issue"></div>
         <div><label>Description</label><textarea id="iDesc"></textarea></div>
         <div><label>Cover image</label><input id="iCover" type="file" accept="image/*"></div>
-        <div><label>PDF file</label><input id="iPdf" type="file" accept="application/pdf"></div>
+        <div><label>PDF file (pages are extracted automatically for the flip-book)</label><input id="iPdf" type="file" accept="application/pdf"></div>
         <button type="button" class="btn btn-gold" id="iAddBtn">Add issue</button>
         <div id="iUploadStatus" style="font-size:0.85rem; color:var(--muted);"></div>
       </div>
@@ -153,6 +153,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="assets/auth.js"></script>
 <script>
 document.querySelectorAll(".admin-tab").forEach(tab => {
@@ -163,6 +164,26 @@ document.querySelectorAll(".admin-tab").forEach(tab => {
     document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
   });
 });
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+
+async function pdfToPageBlobs(file, onProgress) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const blobs = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    if (onProgress) onProgress(i, pdf.numPages);
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.87));
+    blobs.push(blob);
+  }
+  return blobs;
+}
 
 async function checkAdminAccess() {
   const admin = await isAdmin();
@@ -273,14 +294,27 @@ document.getElementById("iAddBtn").addEventListener("click", async () => {
   const title = document.getElementById("iTitle").value.trim();
   if (!title) { alert("Title is required."); return; }
   try {
-    status.textContent = "Uploading files...";
     const row = {
       issue_number: parseInt(document.getElementById("iNumber").value) || null,
       title,
       description: document.getElementById("iDesc").value.trim(),
-      cover_url: coverFile ? await uploadFile(coverFile, "covers") : null,
-      pdf_url: pdfFile ? await uploadFile(pdfFile, "pdfs") : null,
+      cover_url: null, pdf_url: null, pages: null,
     };
+    if (pdfFile) {
+      status.textContent = "Reading PDF...";
+      const blobs = await pdfToPageBlobs(pdfFile, (i, total) => { status.textContent = `Extracting page ${i} of ${total}...`; });
+      status.textContent = "Uploading original PDF...";
+      row.pdf_url = await uploadFile(pdfFile, "pdfs", pdfFile.name);
+      const urls = [];
+      for (let i = 0; i < blobs.length; i++) {
+        status.textContent = `Uploading page ${i + 1} of ${blobs.length}...`;
+        urls.push(await uploadFile(blobs[i], "pages", `page-${String(i + 1).padStart(2, "0")}.jpg`));
+      }
+      row.pages = urls;
+      if (!coverFile) row.cover_url = urls[0];
+    }
+    if (coverFile) { status.textContent = "Uploading cover..."; row.cover_url = await uploadFile(coverFile, "covers", coverFile.name); }
+
     const { error } = await supabaseClient.from("issues").insert(row);
     if (error) throw error;
     status.textContent = "";

@@ -28,8 +28,9 @@ async function isAdmin() {
   return !!(session && ADMIN_EMAILS.includes(session.user.email));
 }
 
-async function uploadFile(file, folder) {
-  const fileName = folder + "/" + Date.now() + "-" + file.name.replace(/\s+/g, "-");
+async function uploadFile(file, folder, filename) {
+  const name = filename || file.name || ("file-" + Date.now());
+  const fileName = folder + "/" + Date.now() + "-" + name.replace(/\s+/g, "-");
   const { error } = await supabaseClient.storage.from("media").upload(fileName, file);
   if (error) throw error;
   const { data } = supabaseClient.storage.from("media").getPublicUrl(fileName);
