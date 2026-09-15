@@ -28,6 +28,14 @@ async function isAdmin() {
   return !!(session && ADMIN_EMAILS.includes(session.user.email));
 }
 
+async function uploadFile(file, folder) {
+  const fileName = folder + "/" + Date.now() + "-" + file.name.replace(/\s+/g, "-");
+  const { error } = await supabaseClient.storage.from("media").upload(fileName, file);
+  if (error) throw error;
+  const { data } = supabaseClient.storage.from("media").getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
 function setupAuthUI() {
   const authBtn = document.getElementById("authBtn");
   const authModal = document.getElementById("authModal");

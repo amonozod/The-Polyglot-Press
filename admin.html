@@ -104,7 +104,7 @@
         <div><label>Dek / summary</label><textarea id="aDek"></textarea></div>
         <div><label>Category</label><input id="aCategory"></div>
         <div><label>Author</label><input id="aAuthor"></div>
-        <div><label>Image URL</label><input id="aImage"></div>
+        <div><label>Image</label><input id="aImage" type="file" accept="image/*"></div>
         <div><label>Full content (paragraphs separated by a blank line)</label><textarea id="aContent" style="min-height:200px;"></textarea></div>
         <button type="button" class="btn btn-gold" id="aAddBtn">Publish article</button>
       </div>
@@ -117,7 +117,7 @@
       <div class="admin-form">
         <div><label>Name</label><input id="tName"></div>
         <div><label>Role</label><input id="tRole" placeholder="Editor-in-Chief"></div>
-        <div><label>Photo URL (optional)</label><input id="tPhoto"></div>
+        <div><label>Photo</label><input id="tPhoto" type="file" accept="image/*"></div>
         <button type="button" class="btn btn-gold" id="tAddBtn">Add team member</button>
       </div>
       <div id="tList"></div>
@@ -130,9 +130,10 @@
         <div><label>Issue number</label><input id="iNumber" type="number"></div>
         <div><label>Title</label><input id="iTitle" placeholder="September 2026 — The Patience Issue"></div>
         <div><label>Description</label><textarea id="iDesc"></textarea></div>
-        <div><label>Cover image URL</label><input id="iCover"></div>
-        <div><label>PDF URL</label><input id="iPdf"></div>
+        <div><label>Cover image</label><input id="iCover" type="file" accept="image/*"></div>
+        <div><label>PDF file</label><input id="iPdf" type="file" accept="application/pdf"></div>
         <button type="button" class="btn btn-gold" id="iAddBtn">Add issue</button>
+        <div id="iUploadStatus" style="font-size:0.85rem; color:var(--muted);"></div>
       </div>
       <div id="iList"></div>
     </div>
@@ -213,20 +214,24 @@ document.getElementById("aTitle").addEventListener("blur", () => {
   }
 });
 document.getElementById("aAddBtn").addEventListener("click", async () => {
+  const imageFile = document.getElementById("aImage").files[0];
   const row = {
     slug: document.getElementById("aSlug").value.trim(),
     title: document.getElementById("aTitle").value.trim(),
     dek: document.getElementById("aDek").value.trim(),
     category: document.getElementById("aCategory").value.trim(),
     author: document.getElementById("aAuthor").value.trim(),
-    image_url: document.getElementById("aImage").value.trim() || null,
     content: document.getElementById("aContent").value.trim(),
   };
   if (!row.slug || !row.title) { alert("Slug and title are required."); return; }
-  const { error } = await supabaseClient.from("articles").insert(row);
-  if (error) { alert("Error: " + error.message); return; }
-  ["aSlug","aTitle","aDek","aCategory","aAuthor","aImage","aContent"].forEach(id => document.getElementById(id).value = "");
-  loadArticlesAdmin();
+  try {
+    row.image_url = imageFile ? await uploadFile(imageFile, "articles") : null;
+    const { error } = await supabaseClient.from("articles").insert(row);
+    if (error) throw error;
+    ["aSlug","aTitle","aDek","aCategory","aAuthor","aContent"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("aImage").value = "";
+    loadArticlesAdmin();
+  } catch (err) { alert("Error: " + err.message); }
 });
 
 // ---- Team ----
@@ -241,12 +246,15 @@ async function loadTeamAdmin() {
 document.getElementById("tAddBtn").addEventListener("click", async () => {
   const name = document.getElementById("tName").value.trim();
   const role = document.getElementById("tRole").value.trim();
-  const photo_url = document.getElementById("tPhoto").value.trim() || null;
+  const photoFile = document.getElementById("tPhoto").files[0];
   if (!name) { alert("Name is required."); return; }
-  const { error } = await supabaseClient.from("team_members").insert({ name, role, photo_url });
-  if (error) { alert("Error: " + error.message); return; }
-  ["tName","tRole","tPhoto"].forEach(id => document.getElementById(id).value = "");
-  loadTeamAdmin();
+  try {
+    const photo_url = photoFile ? await uploadFile(photoFile, "team") : null;
+    const { error } = await supabaseClient.from("team_members").insert({ name, role, photo_url });
+    if (error) throw error;
+    document.getElementById("tName").value = ""; document.getElementById("tRole").value = ""; document.getElementById("tPhoto").value = "";
+    loadTeamAdmin();
+  } catch (err) { alert("Error: " + err.message); }
 });
 
 // ---- Issues ----
@@ -259,18 +267,31 @@ async function loadIssuesAdmin() {
     </div>`).join("") || '<p style="color:var(--muted);">No issues yet.</p>';
 }
 document.getElementById("iAddBtn").addEventListener("click", async () => {
-  const row = {
-    issue_number: parseInt(document.getElementById("iNumber").value) || null,
-    title: document.getElementById("iTitle").value.trim(),
-    description: document.getElementById("iDesc").value.trim(),
-    cover_url: document.getElementById("iCover").value.trim() || null,
-    pdf_url: document.getElementById("iPdf").value.trim() || null,
-  };
-  if (!row.title) { alert("Title is required."); return; }
-  const { error } = await supabaseClient.from("issues").insert(row);
-  if (error) { alert("Error: " + error.message); return; }
-  ["iNumber","iTitle","iDesc","iCover","iPdf"].forEach(id => document.getElementById(id).value = "");
-  loadIssuesAdmin();
+  const status = document.getElementById("iUploadStatus");
+  const coverFile = document.getElementById("iCover").files[0];
+  const pdfFile = document.getElementById("iPdf").files[0];
+  const title = document.getElementById("iTitle").value.trim();
+  if (!title) { alert("Title is required."); return; }
+  try {
+    status.textContent = "Uploading files...";
+    const row = {
+      issue_number: parseInt(document.getElementById("iNumber").value) || null,
+      title,
+      description: document.getElementById("iDesc").value.trim(),
+      cover_url: coverFile ? await uploadFile(coverFile, "covers") : null,
+      pdf_url: pdfFile ? await uploadFile(pdfFile, "pdfs") : null,
+    };
+    const { error } = await supabaseClient.from("issues").insert(row);
+    if (error) throw error;
+    status.textContent = "";
+    ["iNumber","iTitle","iDesc"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("iCover").value = "";
+    document.getElementById("iPdf").value = "";
+    loadIssuesAdmin();
+  } catch (err) {
+    status.textContent = "";
+    alert("Error: " + err.message);
+  }
 });
 
 // ---- Submissions ----
