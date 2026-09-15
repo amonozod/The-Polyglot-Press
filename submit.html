@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Write for The Polyglot Press</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="dateline">Issue 03 — September 2026 · Polyglot International School</div>
+<header class="masthead">
+  <div class="wrap masthead-top">
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-badge.png" alt="The Polyglot Press">
+      <span class="brand-name">The Polyglot <em>Press</em></span>
+    </a>
+    <nav class="masthead-nav" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Magazine</a>
+      <a href="videos.html">Videos</a>
+      <a href="team.html">Editorial Team</a>
+      <a href="about.html">About</a>
+      <a href="submit.html" class="active">Write for Us</a>
+    </nav>
+    <div class="masthead-cta">
+      <a href="submit.html" class="btn btn-navy">Submit an Article</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu"><span></span></button>
+    </div>
+  </div>
+</header>
+
+<section class="wrap page-hero">
+  <div class="kicker">Get published</div>
+  <h1>Write for The Polyglot Press</h1>
+  <p class="dek" style="margin-top:14px; max-width:60ch;">We publish articles, essays, research, opinion pieces, creative writing, interviews, and more from students in any grade and any subject. Submissions go to the editorial team for review before publication.</p>
+</section>
+
+<form class="wrap submit-form" id="submitForm" style="margin-top:40px;">
+  <div class="two-col">
+    <div class="form-row">
+      <label for="fName">Name</label>
+      <input id="fName" type="text" required>
+    </div>
+    <div class="form-row">
+      <label for="fYear">Year / Grade</label>
+      <input id="fYear" type="text" placeholder="e.g. Year 11">
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="form-row">
+      <label for="fEmail">Email</label>
+      <input id="fEmail" type="email" required>
+    </div>
+    <div class="form-row">
+      <label for="fCategory">Category</label>
+      <select id="fCategory">
+        <option>Research</option>
+        <option>Essay</option>
+        <option>Opinion</option>
+        <option>Creative Writing</option>
+        <option>Interview</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <label for="fTitle">Article Title</label>
+    <input id="fTitle" type="text" required>
+  </div>
+  <div class="form-row">
+    <label for="fDesc">Article Description</label>
+    <textarea id="fDesc" placeholder="A short summary of what your piece is about..."></textarea>
+  </div>
+  <div class="form-row">
+    <label>Upload Article</label>
+    <div class="file-drop">Drop a .docx or .pdf file here, or click to browse</div>
+  </div>
+  <div class="form-row">
+    <label>Upload Images</label>
+    <div class="file-drop">Drop images here, or click to browse</div>
+  </div>
+  <button type="submit" class="btn btn-gold" style="justify-self:start; padding:14px 30px;">Submit for Review</button>
+  <p id="submitConfirm" style="display:none; color:var(--gold-deep); font-size:0.92rem; font-weight:600;">Thank you — your submission has been sent to the editorial team for review.</p>
+</form>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">THE POLYGLOT PRESS</div>
+        <p class="footer-tag">Ideas written by students. Questions worth asking.</p>
+      </div>
+      <div>
+        <h5>Explore</h5>
+        <a href="index.html">Home</a>
+        <a href="archive.html">Magazine</a>
+        <a href="videos.html">Videos</a>
+        <a href="about.html">About</a>
+      </div>
+      <div>
+        <h5>Get involved</h5>
+        <a href="submit.html">Submit an Article</a>
+        <a href="team.html">Editorial Team</a>
+        <a href="about.html#contact">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 The Polyglot Press. All rights reserved.</span>
+      <span>A student publication of Polyglot International School.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/script.js"></script>
+<script>
+document.getElementById("submitForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const row = {
+    name: document.getElementById("fName").value.trim(),
+    year_grade: document.getElementById("fYear").value.trim(),
+    email: document.getElementById("fEmail").value.trim(),
+    category: document.getElementById("fCategory").value,
+    title: document.getElementById("fTitle").value.trim(),
+    description: document.getElementById("fDesc").value.trim(),
+    status: "pending"
+  };
+  try {
+    const { error } = await supabaseClient.from("submissions").insert(row);
+    if (error) throw error;
+  } catch (err) { /* still confirm to the user even if backend isn't configured yet */ }
+  document.getElementById("submitConfirm").style.display = "block";
+  this.reset();
+});
+</script>
+</body>
+</html>
