@@ -32,7 +32,9 @@
   #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:20px; }
   #flipbook-wrap.show{ display:flex; }
   #flipbook{ box-shadow:0 40px 90px rgba(0,0,0,0.6); }
-  #flipbook img{ width:100%; height:100%; object-fit:cover; }
+  #flipbook img{ width:100%; height:100%; object-fit:cover; image-rendering:auto; }
+  .flip-page{ width:100%; height:100%; overflow:hidden; background:#fff; }
+  .flip-page img{ width:100%; height:100%; object-fit:cover; display:block; }
   .reader-controls{ display:flex; align-items:center; gap:18px; }
   .reader-controls button{
     width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff;
@@ -119,24 +121,43 @@
         const wrap = document.getElementById("flipbook-wrap");
         wrap.classList.add("show");
 
-        const availH = window.innerHeight - 140;
-        const availW = window.innerWidth - 60;
-        const aspect = 1.4142; // A4 portrait height/width
-        let h = availH;
-        let w = h / aspect;
-        if (w > availW) { w = availW; h = w * aspect; }
-        w = Math.round(w); h = Math.round(h);
+        const isMobile = window.innerWidth < 900;
+        const availH = window.innerHeight - 130;
+        const availW = window.innerWidth - 40;
+        const aspect = 1.4142; // A4 height/width
+
+        let pageH, pageW;
+        if (isMobile) {
+          pageH = availH; pageW = pageH / aspect;
+          if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
+        } else {
+          pageH = availH; pageW = pageH / aspect;
+          let spreadW = pageW * 2;
+          if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
+        }
+        pageW = Math.round(pageW); pageH = Math.round(pageH);
 
         const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
-          width: w,
-          height: h,
+          width: pageW,
+          height: pageH,
           size: "fixed",
+          autoSize: false,
           maxShadowOpacity: 0.6,
-          showCover: true,
+          showCover: false,
           mobileScrollSupport: true,
-          usePortrait: window.innerWidth < 900
+          usePortrait: isMobile
         });
-        pageFlip.loadFromImages(pageImages);
+
+        const flipbookEl = document.getElementById("flipbook");
+        pageImages.forEach(url => {
+          const pageDiv = document.createElement("div");
+          pageDiv.className = "flip-page";
+          const img = document.createElement("img");
+          img.src = url;
+          pageDiv.appendChild(img);
+          flipbookEl.appendChild(pageDiv);
+        });
+        pageFlip.loadFromHTML(document.querySelectorAll(".flip-page"));
 
         const total = pageImages.length;
         function updateIndicator() {
