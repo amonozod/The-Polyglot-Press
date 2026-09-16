@@ -12,7 +12,7 @@
   body{ background:#0C1730; }
   .reader-stage{
     min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, #1B2A52 0%, #0C1730 75%); perspective:1800px; padding:40px 20px;
+    background:radial-gradient(ellipse at center, #1B2A52 0%, #0C1730 75%); perspective:1800px; padding:16px 8px;
   }
   .book-intro{ position:relative; width:min(360px, 80vw); aspect-ratio:3/4; cursor:pointer; }
   .book-cover{
@@ -31,8 +31,13 @@
 
   #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:20px; }
   #flipbook-wrap.show{ display:flex; }
-  #flipbook{ box-shadow:0 40px 90px rgba(0,0,0,0.6); }
-  #flipbook img{ width:100%; height:100%; object-fit:cover; image-rendering:auto; }
+  #flipbook{ box-shadow:0 40px 90px rgba(0,0,0,0.6); position:relative; }
+  #flipbook::after{
+    content:""; position:absolute; top:0; bottom:0; left:50%; width:26px; margin-left:-13px;
+    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0) 100%);
+    pointer-events:none; z-index:5;
+  }
+  #flipbook img{ width:100%; height:100%; object-fit:cover; }
   .flip-page{ width:100%; height:100%; overflow:hidden; background:#fff; }
   .flip-page img{ width:100%; height:100%; object-fit:cover; display:block; }
   .reader-controls{ display:flex; align-items:center; gap:18px; }
@@ -122,8 +127,8 @@
         wrap.classList.add("show");
 
         const isMobile = window.innerWidth < 900;
-        const availH = window.innerHeight - 130;
-        const availW = window.innerWidth - 40;
+        const availH = window.innerHeight - 90;
+        const availW = window.innerWidth - 16;
         const aspect = 1.4142; // A4 height/width
 
         let pageH, pageW;
