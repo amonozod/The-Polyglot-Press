@@ -118,14 +118,23 @@
       if (pageImages) {
         const wrap = document.getElementById("flipbook-wrap");
         wrap.classList.add("show");
-        const isMobile = window.innerWidth < 700;
+
+        const availH = window.innerHeight - 140;
+        const availW = window.innerWidth - 60;
+        const aspect = 1.4142; // A4 portrait height/width
+        let h = availH;
+        let w = h / aspect;
+        if (w > availW) { w = availW; h = w * aspect; }
+        w = Math.round(w); h = Math.round(h);
+
         const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
-          width: isMobile ? 320 : 460,
-          height: isMobile ? 452 : 650,
+          width: w,
+          height: h,
           size: "fixed",
-          maxShadowOpacity: 0.5,
+          maxShadowOpacity: 0.6,
           showCover: true,
-          mobileScrollSupport: true
+          mobileScrollSupport: true,
+          usePortrait: window.innerWidth < 900
         });
         pageFlip.loadFromImages(pageImages);
 
