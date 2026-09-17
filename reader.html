@@ -12,10 +12,9 @@
   body{ background:var(--navy-deep); }
   .reader-stage{
     min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, var(--navy) 0%, var(--navy-deep) 75%); perspective:2000px; padding:20px 10px;
+    background:radial-gradient(ellipse at center, var(--navy) 0%, var(--navy-deep) 75%); perspective:2200px; padding:20px 10px;
   }
 
-  /* ---- Intro cover ---- */
   .book-intro{ position:relative; width:min(360px, 80vw); aspect-ratio:3/4; cursor:pointer; }
   .book-cover{
     position:absolute; inset:0; background-size:cover; background-position:center;
@@ -31,39 +30,23 @@
   .book-cover p{ color:#C9CEDA; font-size:0.9rem; }
   .hint{ text-align:center; color:#C9CEDA; font-size:0.85rem; margin-top:22px; font-family:var(--sans); }
 
-  /* ---- Custom two-page spread book viewer ---- */
-  #bookViewer{ display:none; flex-direction:column; align-items:center; gap:22px; width:100%; }
-  #bookViewer.show{ display:flex; }
-  .page-frame{
-    position:relative; display:flex; box-shadow:0 40px 100px rgba(0,0,0,0.65);
-    border-radius:2px; perspective:2400px; background:#fff;
+  #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:22px; }
+  #flipbook-wrap.show{ display:flex; }
+  #flipbook{ box-shadow:0 40px 100px rgba(0,0,0,0.65); position:relative; border-radius:2px; }
+  #flipbook::before{
+    content:""; position:absolute; top:0; bottom:0; left:50%; width:56px; margin-left:-28px;
+    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 100%);
+    pointer-events:none; z-index:1000;
   }
-  .page-frame::after{
-    content:""; position:absolute; top:0; bottom:0; left:50%; width:34px; margin-left:-17px;
-    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 50%, rgba(0,0,0,0) 100%);
-    pointer-events:none; z-index:50;
-  }
-  .spread-left, .spread-right-wrap{ width:50%; height:100%; position:relative; overflow:hidden; }
-  .spread-left img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .page-frame.single .spread-left{ width:100%; }
-  .page-frame.single .spread-right-wrap{ display:none; }
-  .page-layer{ position:absolute; inset:0; width:100%; height:100%; overflow:hidden; background:#fff; }
-  .page-layer img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .page-layer.top{
-    z-index:10; transform-origin:left center;
-    transition:transform 0.9s cubic-bezier(.6,.05,.2,1);
-    box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  }
-  .page-layer.top.flipped{ transform:rotateY(-150deg); }
-  .page-layer.bottom{ z-index:5; }
+  .flip-page{ width:100%; height:100%; overflow:hidden; background:#fff; }
+  .flip-page img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   .reader-controls{ display:flex; align-items:center; gap:18px; }
   .reader-controls button{
     width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff;
     border:1px solid rgba(255,255,255,0.2); font-size:1.2rem;
   }
-  .reader-controls button:disabled{ opacity:0.3; }
-  .reader-controls button:not(:disabled):hover{ background:rgba(255,255,255,0.2); }
+  .reader-controls button:hover{ background:var(--gold); color:var(--navy-deep); border-color:var(--gold); }
   .page-indicator{ color:#C9CEDA; font-family:var(--mono); font-size:0.85rem; min-width:70px; text-align:center; }
 
   .reader-frame{ display:none; width:100%; max-width:900px; height:80vh; background:#111; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
@@ -101,14 +84,8 @@
     <p class="hint" id="hint">Click the cover to open</p>
   </div>
 
-  <div id="bookViewer">
-    <div class="page-frame" id="pageFrame">
-      <div class="spread-left" id="spreadLeft"><img id="leftImg" src="" alt=""></div>
-      <div class="spread-right-wrap">
-        <div class="page-layer bottom" id="bottomLayer"><img id="bottomImg" src="" alt=""></div>
-        <div class="page-layer top" id="topLayer"><img id="topImg" src="" alt=""></div>
-      </div>
-    </div>
+  <div id="flipbook-wrap">
+    <div id="flipbook"></div>
     <div class="reader-controls">
       <button id="prevBtn" aria-label="Previous page">‹</button>
       <span class="page-indicator" id="pageIndicator">1 / 1</span>
@@ -134,6 +111,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/content.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
 <script>
 (async function () {
   const params = new URLSearchParams(window.location.search);
@@ -170,7 +148,58 @@
       document.getElementById("introView").style.display = "none";
 
       if (pageImages && pageImages.length > 1) {
-        initBookViewer(pageImages.slice(1)); // page 1 already shown as the cover
+        const insidePages = pageImages.slice(1); // page 1 already shown as the cover
+        const wrap = document.getElementById("flipbook-wrap");
+        wrap.classList.add("show");
+
+        const isMobile = window.innerWidth < 900;
+        const availH = window.innerHeight - 170;
+        const availW = window.innerWidth - 30;
+        const aspect = 1.4142;
+
+        let pageW, pageH;
+        if (isMobile) {
+          pageH = availH; pageW = pageH / aspect;
+          if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
+        } else {
+          pageH = availH; pageW = pageH / aspect;
+          let spreadW = pageW * 2;
+          if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
+        }
+        pageW = Math.round(pageW); pageH = Math.round(pageH);
+
+        const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
+          width: pageW,
+          height: pageH,
+          size: "fixed",
+          autoSize: false,
+          maxShadowOpacity: 1,
+          drawShadow: true,
+          showCover: false,
+          mobileScrollSupport: true,
+          usePortrait: isMobile,
+          flippingTime: 700
+        });
+
+        const flipbookEl = document.getElementById("flipbook");
+        insidePages.forEach(url => {
+          const pageDiv = document.createElement("div");
+          pageDiv.className = "flip-page";
+          const img = document.createElement("img");
+          img.src = url;
+          pageDiv.appendChild(img);
+          flipbookEl.appendChild(pageDiv);
+        });
+        pageFlip.loadFromHTML(document.querySelectorAll(".flip-page"));
+
+        const total = insidePages.length;
+        function updateIndicator() {
+          document.getElementById("pageIndicator").textContent = (pageFlip.getCurrentPageIndex() + 1) + " / " + total;
+        }
+        updateIndicator();
+        pageFlip.on("flip", updateIndicator);
+        document.getElementById("prevBtn").addEventListener("click", () => pageFlip.flipPrev());
+        document.getElementById("nextBtn").addEventListener("click", () => pageFlip.flipNext());
       } else if (pdfUrl) {
         const frame = document.getElementById("readerFrame");
         document.getElementById("pdfFrame").src = pdfUrl;
@@ -190,96 +219,6 @@
       });
     }, 900);
   });
-
-  function initBookViewer(pages) {
-    const viewer = document.getElementById("bookViewer");
-    viewer.classList.add("show");
-
-    const pageFrame = document.getElementById("pageFrame");
-    const leftImg = document.getElementById("leftImg");
-    const topLayer = document.getElementById("topLayer");
-    const topImg = document.getElementById("topImg");
-    const bottomImg = document.getElementById("bottomImg");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const indicator = document.getElementById("pageIndicator");
-
-    const isMobile = window.innerWidth < 900;
-    const availH = window.innerHeight - 170;
-    const availW = window.innerWidth - 30;
-    const aspect = 1.4142;
-    let pageH, pageW;
-    if (isMobile) {
-      pageH = availH; pageW = pageH / aspect;
-      if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
-      pageFrame.style.width = Math.round(pageW) + "px";
-      pageFrame.style.height = Math.round(pageH) + "px";
-    } else {
-      pageH = availH; pageW = pageH / aspect;
-      let spreadW = pageW * 2;
-      if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
-      pageFrame.style.width = Math.round(pageW * 2) + "px";
-      pageFrame.style.height = Math.round(pageH) + "px";
-    }
-    if (isMobile) pageFrame.classList.add("single");
-
-    const perSpread = isMobile ? 1 : 2;
-    const totalSpreads = Math.ceil(pages.length / perSpread);
-    let spread = 0;
-    let animating = false;
-
-    function spreadPages(s) {
-      const l = pages[s * perSpread];
-      const r = perSpread === 2 ? pages[s * perSpread + 1] : undefined;
-      return { l, r };
-    }
-
-    function renderSpread(s) {
-      const { l, r } = spreadPages(s);
-      leftImg.src = l;
-      if (r) {
-        pageFrame.classList.remove("single");
-        topImg.src = r; bottomImg.src = r;
-      } else {
-        pageFrame.classList.add("single");
-      }
-      indicator.textContent = (s + 1) + " / " + totalSpreads;
-      prevBtn.disabled = s === 0 || animating;
-      nextBtn.disabled = s === totalSpreads - 1 || animating;
-    }
-    renderSpread(0);
-
-    function goNext() {
-      if (animating || spread >= totalSpreads - 1) return;
-      animating = true;
-      const next = spreadPages(spread + 1);
-      if (next.r) { bottomImg.src = next.r; } else { bottomImg.src = next.l; }
-      topLayer.classList.add("flipped");
-      setTimeout(() => {
-        spread++;
-        renderSpread(spread);
-        topLayer.classList.remove("flipped");
-        animating = false;
-      }, 900);
-    }
-
-    function goPrev() {
-      if (animating || spread <= 0) return;
-      animating = true;
-      const prev = spreadPages(spread - 1);
-      if (prev.r) { bottomImg.src = prev.r; } else { bottomImg.src = prev.l; }
-      topLayer.classList.add("flipped");
-      setTimeout(() => {
-        spread--;
-        renderSpread(spread);
-        topLayer.classList.remove("flipped");
-        animating = false;
-      }, 900);
-    }
-
-    prevBtn.addEventListener("click", goPrev);
-    nextBtn.addEventListener("click", goNext);
-  }
 })();
 </script>
 </body>

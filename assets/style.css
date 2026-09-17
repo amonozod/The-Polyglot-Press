@@ -2,15 +2,15 @@
    The Polyglot Press — editorial design system
    ============================================================ */
 :root{
-  --navy:       #16274A;
-  --navy-deep:  #0B1830;
-  --gold:       #E8A93B;
-  --gold-deep:  #C6841A;
-  --gold-tint:  #FBEBCB;
-  --paper:      #0F1C38;
-  --surface:    #16274A;
+  --navy:       #1A3E56;
+  --navy-deep:  #021C2D;
+  --gold:       #FAB50F;
+  --gold-deep:  #C98A0A;
+  --gold-tint:  #FDE7B8;
+  --paper:      #071F30;
+  --surface:    #1A3E56;
   --ink:        #F3F1E9;
-  --muted:      #9BA6C4;
+  --muted:      #9BB0C0;
   --rule:       rgba(255,255,255,0.14);
   --rule-dark:  rgba(255,255,255,0.14);
   --serif:      "Fraunces", Georgia, "Times New Roman", serif;
@@ -62,12 +62,12 @@ button{ font-family:inherit; cursor:pointer; background:none; border:none; }
 
 /* ---------- Buttons ---------- */
 .btn{ display:inline-flex; align-items:center; gap:8px; padding:12px 22px; border-radius:2px; font-weight:600; font-size:0.9rem; border:1px solid transparent; transition:background .15s ease, color .15s ease, border-color .15s ease; }
-.btn-navy{ background:var(--navy); color:#fff; }
-.btn-navy:hover{ background:var(--gold-deep); }
+.btn-navy{ background:var(--gold); color:var(--navy-deep); }
+.btn-navy:hover{ background:var(--gold-deep); color:#fff; }
 .btn-outline{ border-color:var(--ink); color:var(--ink); }
 .btn-outline:hover{ background:var(--gold); color:var(--navy-deep); border-color:var(--gold); }
-.btn-gold{ background:var(--gold); color:#fff; }
-.btn-gold:hover{ background:var(--gold-deep); }
+.btn-gold{ background:var(--gold); color:var(--navy-deep); }
+.btn-gold:hover{ background:var(--gold-deep); color:#fff; }
 
 /* ---------- Hero (homepage) ---------- */
 .hero-grid{ display:grid; grid-template-columns:1.6fr 1fr; gap:56px; padding:52px 0 60px; }
