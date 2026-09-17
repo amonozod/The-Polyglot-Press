@@ -6,54 +6,66 @@
 <title>Read Issue — The Polyglot Press</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swapfamily=Manrope:wght@400;500;600;700;800https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swapdisplay=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  body{ background:#0B1830; }
+  body{ background:var(--navy-deep); }
   .reader-stage{
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, #16274A 0%, #0B1830 75%); perspective:1800px; padding:16px 8px;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, var(--navy) 0%, var(--navy-deep) 75%); perspective:2000px; padding:20px 10px;
   }
+
+  /* ---- Intro cover ---- */
   .book-intro{ position:relative; width:min(360px, 80vw); aspect-ratio:3/4; cursor:pointer; }
   .book-cover{
     position:absolute; inset:0; background-size:cover; background-position:center;
-    background:linear-gradient(135deg, #16274A, #1E3A66, #E8A93B);
+    background:linear-gradient(135deg, var(--navy), var(--navy-deep), var(--gold));
     transform-origin:left center; transition:transform 1s cubic-bezier(.6,.05,.2,1);
     box-shadow:0 30px 60px rgba(0,0,0,0.5); border-radius:2px 6px 6px 2px;
     display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px;
   }
   .book-intro.open .book-cover{ transform:rotateY(-150deg); box-shadow:none; }
-  .book-spine{ position:absolute; left:0; top:0; bottom:0; width:14px; background:#0B1830; border-radius:2px 0 0 2px; }
-  .book-cover .kicker{ color:#F3E9CE; }
+  .book-spine{ position:absolute; left:0; top:0; bottom:0; width:14px; background:var(--navy-deep); border-radius:2px 0 0 2px; }
+  .book-cover .kicker{ color:var(--gold-tint); }
   .book-cover h1{ color:#fff; font-size:1.6rem; margin:10px 0; }
   .book-cover p{ color:#C9CEDA; font-size:0.9rem; }
   .hint{ text-align:center; color:#C9CEDA; font-size:0.85rem; margin-top:22px; font-family:var(--sans); }
 
-  #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:20px; }
-  #flipbook-wrap.show{ display:flex; }
-  #flipbook{ box-shadow:0 40px 90px rgba(0,0,0,0.6); position:relative; }
-  #flipbook, #flipbook *{ background-color:transparent !important; }
-  #flipbook::after{
-    content:""; position:absolute; top:0; bottom:0; left:50%; width:40px; margin-left:-20px;
-    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0) 100%);
-    pointer-events:none; z-index:999;
+  /* ---- Custom single-page book viewer ---- */
+  #bookViewer{ display:none; flex-direction:column; align-items:center; gap:22px; width:100%; }
+  #bookViewer.show{ display:flex; }
+  .page-frame{
+    position:relative; box-shadow:0 40px 100px rgba(0,0,0,0.65);
+    background:#fff; border-radius:2px; overflow:visible;
   }
-  #flipbook img{ width:100%; height:100%; object-fit:cover; }
-  .flip-page{ width:100%; height:100%; overflow:hidden; }
-  .flip-page img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .page-face{
+    position:absolute; inset:0; width:100%; height:100%; backface-visibility:hidden;
+    border-radius:2px; overflow:hidden; background:#fff;
+  }
+  .page-face img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .page-face.back{ transform:rotateY(180deg); }
+  .flip-layer{
+    position:absolute; inset:0; width:100%; height:100%; transform-style:preserve-3d;
+    transition:transform 0.7s cubic-bezier(.4,.1,.2,1); transform-origin:left center; z-index:20;
+  }
+  .flip-layer.flipping{ transform:rotateY(-180deg); }
+  .static-current, .static-next{ position:absolute; inset:0; width:100%; height:100%; border-radius:2px; overflow:hidden; }
+  .static-next{ z-index:5; }
+  .static-current{ z-index:10; }
 
   .reader-controls{ display:flex; align-items:center; gap:18px; }
   .reader-controls button{
-    width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff;
-    border:1px solid rgba(255,255,255,0.2); font-size:1.1rem;
+    width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff;
+    border:1px solid rgba(255,255,255,0.2); font-size:1.2rem;
   }
-  .reader-controls button:hover{ background:rgba(255,255,255,0.2); }
+  .reader-controls button:disabled{ opacity:0.3; }
+  .reader-controls button:not(:disabled):hover{ background:rgba(255,255,255,0.2); }
   .page-indicator{ color:#C9CEDA; font-family:var(--mono); font-size:0.85rem; min-width:70px; text-align:center; }
 
   .reader-frame{ display:none; width:100%; max-width:900px; height:80vh; background:#111; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
   .reader-frame iframe{ width:100%; height:100%; border:none; }
   .reader-frame.show{ display:block; }
-  .back-link{ position:fixed; top:24px; left:24px; z-index:1000; background:#fff; }
+  .back-link{ position:fixed; top:24px; left:24px; z-index:1000; background:rgba(255,255,255,0.08); backdrop-filter:blur(6px); }
 
   .issue-comments{ display:none; width:100%; max-width:680px; margin:40px auto 80px; padding:0 20px; }
   .issue-comments.show{ display:block; }
@@ -85,8 +97,8 @@
     <p class="hint" id="hint">Click the cover to open</p>
   </div>
 
-  <div id="flipbook-wrap">
-    <div id="flipbook"></div>
+  <div id="bookViewer">
+    <div class="page-frame" id="pageFrame"></div>
     <div class="reader-controls">
       <button id="prevBtn" aria-label="Previous page">‹</button>
       <span class="page-indicator" id="pageIndicator">1 / 1</span>
@@ -112,7 +124,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/content.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.min.js"></script>
 <script>
 (async function () {
   const params = new URLSearchParams(window.location.search);
@@ -148,57 +159,8 @@
     setTimeout(() => {
       document.getElementById("introView").style.display = "none";
 
-      if (pageImages) {
-        const wrap = document.getElementById("flipbook-wrap");
-        wrap.classList.add("show");
-
-        const isMobile = window.innerWidth < 900;
-        const availH = window.innerHeight - 90;
-        const availW = window.innerWidth - 16;
-        const aspect = 1.4142; // A4 height/width
-
-        let pageH, pageW;
-        if (isMobile) {
-          pageH = availH; pageW = pageH / aspect;
-          if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
-        } else {
-          pageH = availH; pageW = pageH / aspect;
-          let spreadW = pageW * 2;
-          if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
-        }
-        pageW = Math.round(pageW); pageH = Math.round(pageH);
-
-        const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
-          width: pageW,
-          height: pageH,
-          size: "fixed",
-          autoSize: false,
-          maxShadowOpacity: 0.6,
-          showCover: false,
-          mobileScrollSupport: true,
-          usePortrait: isMobile
-        });
-
-        const flipbookEl = document.getElementById("flipbook");
-        const insidePages = pageImages.slice(1); // page 1 is already shown as the cover
-        insidePages.forEach(url => {
-          const pageDiv = document.createElement("div");
-          pageDiv.className = "flip-page";
-          const img = document.createElement("img");
-          img.src = url;
-          pageDiv.appendChild(img);
-          flipbookEl.appendChild(pageDiv);
-        });
-        pageFlip.loadFromHTML(document.querySelectorAll(".flip-page"));
-
-        const total = insidePages.length;
-        function updateIndicator() {
-          document.getElementById("pageIndicator").textContent = (pageFlip.getCurrentPageIndex() + 1) + " / " + total;
-        }
-        updateIndicator();
-        pageFlip.on("flip", updateIndicator);
-        document.getElementById("prevBtn").addEventListener("click", () => pageFlip.flipPrev());
-        document.getElementById("nextBtn").addEventListener("click", () => pageFlip.flipNext());
+      if (pageImages && pageImages.length > 1) {
+        initBookViewer(pageImages.slice(1)); // page 1 already shown as the cover
       } else if (pdfUrl) {
         const frame = document.getElementById("readerFrame");
         document.getElementById("pdfFrame").src = pdfUrl;
@@ -218,6 +180,70 @@
       });
     }, 900);
   });
+
+  function initBookViewer(pages) {
+    const viewer = document.getElementById("bookViewer");
+    viewer.classList.add("show");
+
+    const frame = document.getElementById("pageFrame");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const indicator = document.getElementById("pageIndicator");
+
+    const isMobile = window.innerWidth < 700;
+    const availH = window.innerHeight - 170;
+    const availW = window.innerWidth - 30;
+    const aspect = 1.4142;
+    let h = availH, w = h / aspect;
+    if (w > availW) { w = availW; h = w * aspect; }
+    w = Math.round(w); h = Math.round(h);
+    frame.style.width = w + "px";
+    frame.style.height = h + "px";
+
+    let current = 0;
+    const total = pages.length;
+
+    function render() {
+      frame.innerHTML = "";
+      const cur = document.createElement("div");
+      cur.className = "page-face";
+      cur.style.position = "static";
+      cur.innerHTML = `<img src="${pages[current]}" alt="">`;
+      frame.appendChild(cur);
+      indicator.textContent = (current + 1) + " / " + total;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === total - 1;
+    }
+
+    function flipTo(newIndex, direction) {
+      if (newIndex < 0 || newIndex >= total) return;
+      const outgoing = current;
+      current = newIndex;
+
+      const layer = document.createElement("div");
+      layer.className = "flip-layer";
+      layer.style.transformOrigin = direction === "next" ? "left center" : "right center";
+      layer.innerHTML = `
+        <div class="page-face front"><img src="${pages[outgoing]}" alt=""></div>
+        <div class="page-face back"><img src="${pages[newIndex]}" alt=""></div>`;
+      if (direction === "prev") {
+        layer.style.transform = "rotateY(180deg)";
+        layer.querySelector(".front").style.transform = "rotateY(180deg)";
+        layer.querySelector(".back").style.transform = "rotateY(0deg)";
+      }
+      frame.appendChild(layer);
+      requestAnimationFrame(() => {
+        layer.style.transition = "transform 0.7s cubic-bezier(.4,.1,.2,1)";
+        layer.style.transform = direction === "next" ? "rotateY(-180deg)" : "rotateY(0deg)";
+      });
+      setTimeout(() => { render(); }, 720);
+    }
+
+    prevBtn.addEventListener("click", () => flipTo(current - 1, "prev"));
+    nextBtn.addEventListener("click", () => flipTo(current + 1, "next"));
+
+    render();
+  }
 })();
 </script>
 </body>
