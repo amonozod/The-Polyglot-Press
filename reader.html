@@ -32,14 +32,16 @@
   #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:20px; }
   #flipbook-wrap.show{ display:flex; }
   #flipbook{ box-shadow:0 40px 90px rgba(0,0,0,0.6); position:relative; }
+  #flipbook, #flipbook *{ background-color:transparent !important; }
   #flipbook::after{
-    content:""; position:absolute; top:0; bottom:0; left:50%; width:26px; margin-left:-13px;
-    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0) 100%);
-    pointer-events:none; z-index:5;
+    content:""; position:absolute; top:0; bottom:0; left:50%; width:40px; margin-left:-20px;
+    background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0) 100%);
+    pointer-events:none; z-index:999;
   }
   #flipbook img{ width:100%; height:100%; object-fit:cover; }
-  .flip-page{ width:100%; height:100%; overflow:hidden; background:#fff; }
+  .flip-page{ width:100%; height:100%; overflow:hidden; }
   .flip-page img{ width:100%; height:100%; object-fit:cover; display:block; }
+
   .reader-controls{ display:flex; align-items:center; gap:18px; }
   .reader-controls button{
     width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.1); color:#fff;
@@ -51,7 +53,7 @@
   .reader-frame{ display:none; width:100%; max-width:900px; height:80vh; background:#111; box-shadow:0 30px 80px rgba(0,0,0,0.6); }
   .reader-frame iframe{ width:100%; height:100%; border:none; }
   .reader-frame.show{ display:block; }
-  .back-link{ position:fixed; top:24px; left:24px; z-index:10; background:#fff; }
+  .back-link{ position:fixed; top:24px; left:24px; z-index:1000; background:#fff; }
 </style>
 </head>
 <body>
