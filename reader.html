@@ -12,27 +12,11 @@
   body{ background:var(--navy-deep); }
   .reader-stage{
     min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, var(--navy) 0%, var(--navy-deep) 75%); perspective:2200px; padding:20px 10px;
+    background:radial-gradient(ellipse at center, var(--navy) 0%, var(--navy-deep) 75%); padding:20px 10px;
   }
+  .reader-hint{ text-align:center; color:#C9CEDA; font-size:0.85rem; margin-bottom:18px; font-family:var(--sans); }
 
-  .book-intro{ position:relative; width:min(360px, 80vw); aspect-ratio:3/4; cursor:pointer; }
-  .book-cover{
-    position:absolute; inset:0; background-size:cover; background-position:center;
-    background:linear-gradient(135deg, var(--navy), var(--navy-deep), var(--gold));
-    transform-origin:left center; transition:transform 1s cubic-bezier(.6,.05,.2,1);
-    box-shadow:0 30px 60px rgba(0,0,0,0.5); border-radius:2px 6px 6px 2px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px;
-  }
-  .book-intro.open .book-cover{ transform:rotateY(-150deg); box-shadow:none; }
-  .book-spine{ position:absolute; left:0; top:0; bottom:0; width:14px; background:var(--navy-deep); border-radius:2px 0 0 2px; }
-  .book-cover .kicker{ color:var(--gold-tint); }
-  .book-cover h1{ color:#fff; font-size:1.6rem; margin:10px 0; }
-  .book-cover p{ color:#C9CEDA; font-size:0.9rem; }
-  .hint{ text-align:center; color:#C9CEDA; font-size:0.85rem; margin-top:22px; font-family:var(--sans); }
-
-  #flipbook-wrap{ display:none; flex-direction:column; align-items:center; gap:22px; }
-  #flipbook-wrap.show{ display:flex; }
-  #flipbook{ box-shadow:0 40px 100px rgba(0,0,0,0.65); position:relative; border-radius:2px; }
+  #flipbook{ box-shadow:0 40px 100px rgba(0,0,0,0.65); position:relative; border-radius:2px; margin-bottom:22px; }
   #flipbook::before{
     content:""; position:absolute; top:0; bottom:0; left:50%; width:56px; margin-left:-28px;
     background:linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0) 100%);
@@ -72,25 +56,12 @@
 <a href="archive.html" class="btn btn-outline back-link">← Back to Archive</a>
 
 <div class="reader-stage" id="stage">
-  <div id="introView">
-    <div class="book-intro" id="book">
-      <div class="book-spine"></div>
-      <div class="book-cover" id="bookCover">
-        <div class="kicker" id="issueKicker">Issue</div>
-        <h1 id="issueTitle">Loading…</h1>
-        <p id="issueDesc"></p>
-      </div>
-    </div>
-    <p class="hint" id="hint">Click the cover to open</p>
-  </div>
-
-  <div id="flipbook-wrap">
-    <div id="flipbook"></div>
-    <div class="reader-controls">
-      <button id="prevBtn" aria-label="Previous page">‹</button>
-      <span class="page-indicator" id="pageIndicator">1 / 1</span>
-      <button id="nextBtn" aria-label="Next page">›</button>
-    </div>
+  <p class="reader-hint" id="hint">Click the cover, or use the arrows, to turn the page</p>
+  <div id="flipbook"></div>
+  <div class="reader-controls">
+    <button id="prevBtn" aria-label="Previous page">‹</button>
+    <span class="page-indicator" id="pageIndicator">1 / 1</span>
+    <button id="nextBtn" aria-label="Next page">›</button>
   </div>
 
   <div class="reader-frame" id="readerFrame">
@@ -127,98 +98,86 @@
     const { data } = await query;
     const issue = data && data[0];
     if (issue) {
-      document.getElementById("issueKicker").textContent = "Issue " + String(issue.issue_number).padStart(2, "0");
-      document.getElementById("issueTitle").textContent = issue.title;
-      document.getElementById("issueDesc").textContent = issue.description || "";
-      if (issue.cover_url) document.getElementById("bookCover").style.background = `url(${issue.cover_url}) center/cover`;
       if (issue.pdf_url) pdfUrl = issue.pdf_url;
       if (issue.pages && issue.pages.length) pageImages = issue.pages;
       issueSlug = "issue-" + issue.issue_number;
-    } else {
-      document.getElementById("issueTitle").textContent = "Issue not found";
     }
-  } catch (e) {
-    document.getElementById("issueTitle").textContent = "The Patience Issue";
+  } catch (e) { /* fall through */ }
+
+  document.getElementById("issueComments").classList.add("show");
+  loadComments(issueSlug, "commentList");
+  document.getElementById("commentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("commentName").value.trim() || "Anonymous";
+    const text = document.getElementById("commentText").value.trim();
+    if (!text) return;
+    try { await postComment(issueSlug, name, text); } catch (err) {}
+    loadComments(issueSlug, "commentList");
+    e.target.reset();
+  });
+
+  if (!pageImages || pageImages.length < 2) {
+    document.getElementById("hint").style.display = "none";
+    document.getElementById("flipbook").style.display = "none";
+    document.querySelector(".reader-controls").style.display = "none";
+    if (pdfUrl) {
+      const frame = document.getElementById("readerFrame");
+      document.getElementById("pdfFrame").src = pdfUrl;
+      frame.classList.add("show");
+    }
+    return;
   }
 
-  document.getElementById("book").addEventListener("click", function () {
-    this.classList.add("open");
-    document.getElementById("hint").style.opacity = "0";
-    setTimeout(() => {
-      document.getElementById("introView").style.display = "none";
+  const isMobile = window.innerWidth < 900;
+  const availH = window.innerHeight - 210;
+  const availW = window.innerWidth - 30;
+  const aspect = 1.4142;
 
-      if (pageImages && pageImages.length > 1) {
-        const insidePages = pageImages.slice(1); // page 1 already shown as the cover
-        const wrap = document.getElementById("flipbook-wrap");
-        wrap.classList.add("show");
+  let pageW, pageH;
+  if (isMobile) {
+    pageH = availH; pageW = pageH / aspect;
+    if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
+  } else {
+    pageH = availH; pageW = pageH / aspect;
+    let spreadW = pageW * 2;
+    if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
+  }
+  pageW = Math.round(pageW); pageH = Math.round(pageH);
 
-        const isMobile = window.innerWidth < 900;
-        const availH = window.innerHeight - 170;
-        const availW = window.innerWidth - 30;
-        const aspect = 1.4142;
-
-        let pageW, pageH;
-        if (isMobile) {
-          pageH = availH; pageW = pageH / aspect;
-          if (pageW > availW) { pageW = availW; pageH = pageW * aspect; }
-        } else {
-          pageH = availH; pageW = pageH / aspect;
-          let spreadW = pageW * 2;
-          if (spreadW > availW) { spreadW = availW; pageW = spreadW / 2; pageH = pageW * aspect; }
-        }
-        pageW = Math.round(pageW); pageH = Math.round(pageH);
-
-        const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
-          width: pageW,
-          height: pageH,
-          size: "fixed",
-          autoSize: false,
-          maxShadowOpacity: 1,
-          drawShadow: true,
-          showCover: false,
-          mobileScrollSupport: true,
-          usePortrait: isMobile,
-          flippingTime: 700
-        });
-
-        const flipbookEl = document.getElementById("flipbook");
-        insidePages.forEach(url => {
-          const pageDiv = document.createElement("div");
-          pageDiv.className = "flip-page";
-          const img = document.createElement("img");
-          img.src = url;
-          pageDiv.appendChild(img);
-          flipbookEl.appendChild(pageDiv);
-        });
-        pageFlip.loadFromHTML(document.querySelectorAll(".flip-page"));
-
-        const total = insidePages.length;
-        function updateIndicator() {
-          document.getElementById("pageIndicator").textContent = (pageFlip.getCurrentPageIndex() + 1) + " / " + total;
-        }
-        updateIndicator();
-        pageFlip.on("flip", updateIndicator);
-        document.getElementById("prevBtn").addEventListener("click", () => pageFlip.flipPrev());
-        document.getElementById("nextBtn").addEventListener("click", () => pageFlip.flipNext());
-      } else if (pdfUrl) {
-        const frame = document.getElementById("readerFrame");
-        document.getElementById("pdfFrame").src = pdfUrl;
-        frame.classList.add("show");
-      }
-
-      document.getElementById("issueComments").classList.add("show");
-      loadComments(issueSlug, "commentList");
-      document.getElementById("commentForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("commentName").value.trim() || "Anonymous";
-        const text = document.getElementById("commentText").value.trim();
-        if (!text) return;
-        try { await postComment(issueSlug, name, text); } catch (err) {}
-        loadComments(issueSlug, "commentList");
-        e.target.reset();
-      });
-    }, 900);
+  const pageFlip = new St.PageFlip(document.getElementById("flipbook"), {
+    width: pageW,
+    height: pageH,
+    size: "fixed",
+    autoSize: false,
+    maxShadowOpacity: 1,
+    drawShadow: true,
+    showCover: true,
+    mobileScrollSupport: true,
+    usePortrait: isMobile,
+    flippingTime: 700
   });
+
+  const flipbookEl = document.getElementById("flipbook");
+  pageImages.forEach(url => {
+    const pageDiv = document.createElement("div");
+    pageDiv.className = "flip-page";
+    const img = document.createElement("img");
+    img.src = url;
+    pageDiv.appendChild(img);
+    flipbookEl.appendChild(pageDiv);
+  });
+  pageFlip.loadFromHTML(document.querySelectorAll(".flip-page"));
+
+  const total = pageImages.length;
+  const indicator = document.getElementById("pageIndicator");
+  function updateIndicator() {
+    indicator.textContent = (pageFlip.getCurrentPageIndex() + 1) + " / " + total;
+    document.getElementById("hint").style.opacity = pageFlip.getCurrentPageIndex() === 0 ? "1" : "0";
+  }
+  updateIndicator();
+  pageFlip.on("flip", updateIndicator);
+  document.getElementById("prevBtn").addEventListener("click", () => pageFlip.flipPrev());
+  document.getElementById("nextBtn").addEventListener("click", () => pageFlip.flipNext());
 })();
 </script>
 </body>
